@@ -26,10 +26,33 @@ This Terraform script automates the setup of the necessary GCP infrastructure to
     ```bash
     terraform apply -var="project_id=[YOUR_PROJECT_ID]"
     ```
-    Enter `yes` when prompted to confirm.
+    Enter `yes` when prompted to confirm. The script will provision the VM and fully configure it, which may take 5-10 minutes.
 
 4.  **Get Outputs:**
-    After the apply is complete, Terraform will output the internal IP of the Kafka VM, and the network and subnetwork names. You will need these for running the producer and the Dataflow job.
+    After the apply is complete, Terraform will output the internal IP of the Kafka VM. You will need this for the Dataflow job parameters.
+
+## Running the Data Generator
+
+The startup script automatically clones the required repository and sets up the Python environment. To start producing data, you just need to SSH into the VM and run the script.
+
+1.  **SSH into the VM:**
+    You can SSH into the VM using the `gcloud` command.
+    ```bash
+    gcloud compute ssh kafka-vm --zone=[YOUR_ZONE] --project=[YOUR_PROJECT_ID]
+    ```
+    *(The default zone is `us-central1-a`)*
+
+2.  **Navigate to the repository and start the producer:**
+    ```bash
+    cd /opt/dataflow-repo
+    source venv/bin/activate
+    python dynamic_producer.py \
+        --broker localhost:9092 \
+        --schema-registry http://localhost:8081 \
+        --topic PurchaseRequestEventV1 \
+        --eps 1000
+    ```
+This will start sending Avro messages to the `PurchaseRequestEventV1` topic.
 
 ## Cleanup
 

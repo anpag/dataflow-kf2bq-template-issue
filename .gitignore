@@ -1,2 +1,13 @@
-DataflowTemplates/*
-venv/*
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Confluent
+*.tar.gz
+confluent-*/

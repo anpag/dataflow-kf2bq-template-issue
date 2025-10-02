@@ -11,31 +11,53 @@ resource "google_compute_instance" "kafka_vm" {
     network    = google_compute_network.vpc_network.id
     subnetwork = google_compute_subnetwork.subnet.id
   }
+  shielded_instance_config {
+    enable_secure_boot = true
+  }
   metadata_startup_script = <<-EOF
     #!/bin/bash
-    # Install Java
-    sudo apt-get update
-    sudo apt-get install -y default-jdk
-    # Download and Extract Kafka
-    wget https://archive.apache.org/dist/kafka/3.2.0/kafka_2.13-3.2.0.tgz
-    tar -xzf kafka_2.13-3.2.0.tgz
-    cd kafka_2.13-3.2.0
-    # Start ZooKeeper and Kafka
-    ./bin/zookeeper-server-start.sh config/zookeeper.properties &
-    ./bin/kafka-server-start.sh config/server.properties &
-    cd ..
-    # Download and Start Confluent Schema Registry
-    wget https://packages.confluent.io/archive/7.2/confluent-community-7.2.1.tar.gz
-    tar -xzf confluent-community-7.2.1.tar.gz
-    cd confluent-community-7.2.1
-    # Update schema registry properties to listen on all interfaces
-    sed -i 's/#listeners=http:\/\/0.0.0.0:8081/listeners=http:\/\/0.0.0.0:8081/g' etc/schema-registry/schema-registry.properties
-    # Update kafka store properties
-    sed -i 's/kafkastore.bootstrap.servers=PLAINTEXT:\/\/localhost:9092/kafkastore.bootstrap.servers=PLAINTEXT:\/\/127.0.0.1:9092/g' etc/schema-registry/schema-registry.properties
-    ./bin/schema-registry-start etc/schema-registry/schema-registry.properties &
+    set -e
+
+    # 1. Install Prerequisites
+    apt-get update
+    apt-get install -y software-properties-common wget gnupg git python3-pip python3-venv curl
+
+    # 2. Add Confluent APT Repository
+    wget -qO - https://packages.confluent.io/deb/7.2/archive.key | apt-key add -
+    add-apt-repository "deb [arch=amd64] https://packages.confluent.io/deb/7.2 stable main"
+    apt-get update
+
+    # 3. Install Confluent Community Platform
+    apt-get install -y confluent-community-2.13
+
+    # 4. Start and Enable Services
+    systemctl start confluent-zookeeper
+    systemctl start confluent-kafka
+    systemctl start confluent-schema-registry
+    systemctl enable confluent-zookeeper
+    systemctl enable confluent-kafka
+    systemctl enable confluent-schema-registry
+
+    # 5. Clone Data Generator Repository
+    git clone https://github.com/anpag/dataflow-kf2bq-template-issue /opt/dataflow-repo
+
+    # 6. Set up Python Environment
+    cd /opt/dataflow-repo
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+
+    # 7. Register the Avro Schema
+    # Wait a few seconds for Schema Registry to be fully up
+    sleep 15
+    curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+      --data "{ \"schema\": $(jq -c . < /opt/dataflow-repo/PurchaseRequestEventV1.avsc | sed 's/"/\\"/g') }" \
+      http://localhost:8081/subjects/PurchaseRequestEventV1-value/versions
+
     EOF
   service_account {
     scopes = ["cloud-platform"]
   }
   tags = ["dataflow-test"]
+  depends_on = [google_project_service.compute]
 }
