@@ -20,57 +20,9 @@ This repository helps demonstrate this behavior.
 
 ## 1. Infrastructure Setup
 
-These steps guide you through setting up a VM to host Kafka and the Schema Registry.
+The necessary GCP infrastructure (VPC, Subnet, Cloud NAT, GCE VM with Kafka and Schema Registry) can be deployed automatically using the provided Terraform scripts.
 
-### Create a GCP VM
-
-1.  **Create a VM instance:**
-    ```bash
-    gcloud compute instances create kafka-vm \
-        --project=[YOUR_PROJECT_ID] \
-        --zone=[YOUR_ZONE] \
-        --machine-type=e2-medium \
-        --image-family=debian-11 \
-        --image-project=debian-cloud \
-        --boot-disk-size=20GB \
-        --subnetwork=[YOUR_SUBNETWORK] \
-        --scopes=https://www.googleapis.com/auth/cloud-platform
-    ```
-
-2.  **SSH into the VM:**
-    ```bash
-    gcloud compute ssh kafka-vm --project=[YOUR_PROJECT_ID] --zone=[YOUR_ZONE]
-    ```
-
-### Install and Configure Kafka and Schema Registry
-
-1.  **Install Java:**
-    ```bash
-    sudo apt-get update
-    sudo apt-get install -y default-jdk
-    ```
-
-2.  **Download and Extract Kafka:**
-    ```bash
-    wget https://archive.apache.org/dist/kafka/3.2.0/kafka_2.13-3.2.0.tgz
-    tar -xzf kafka_2.13-3.2.0.tgz
-    cd kafka_2.13-3.2.0
-    ```
-
-3.  **Start ZooKeeper and Kafka:**
-    ```bash
-    ./bin/zookeeper-server-start.sh config/zookeeper.properties &
-    ./bin/kafka-server-start.sh config/server.properties &
-    ```
-
-4.  **Download and Start Confluent Schema Registry:**
-    ```bash
-    wget https://packages.confluent.io/archive/7.2/confluent-community-7.2.1.tar.gz
-    tar -xzf confluent-community-7.2.1.tar.gz
-    cd confluent-community-7.2.1
-    ./bin/schema-registry-start etc/schema-registry/schema-registry.properties &
-    ```
-    Your Kafka broker will be running at `[VM_INTERNAL_IP]:9092` and Schema Registry at `http://[VM_INTERNAL_IP]:8081`.
+For detailed instructions on how to deploy the infrastructure, please refer to the [Terraform README](./terraform/README.md).
 
 ## 2. Data Generation
 
