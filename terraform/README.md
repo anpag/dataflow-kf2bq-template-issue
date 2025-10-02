@@ -11,38 +11,36 @@ This Terraform script automates the setup of the necessary GCP infrastructure to
 
 ## How to Use
 
+The deployment is a two-step process. First, you create the base infrastructure, and second, you launch the Dataflow job after the data producer is running.
+
+### Step 1: Deploy the Infrastructure
+
 1.  **Initialize Terraform:**
     ```bash
     terraform init
     ```
 
-2.  **Review the Plan:**
+2.  **Apply the Infrastructure Configuration:**
+    This step provisions the VPC, VM, and the BigQuery dataset. Provide your Project ID and the desired name for the new BigQuery dataset when prompted.
     ```bash
-    terraform plan -var="project_id=[YOUR_PROJECT_ID]"
+    terraform apply \
+      -var="project_id=[YOUR_PROJECT_ID]" \
+      -var="bigquery_dataset=[YOUR_BIGQUERY_DATASET]"
     ```
-    Replace `[YOUR_PROJECT_ID]` with your Google Cloud project ID.
+    Enter `yes` when prompted to confirm. This will provision the VM and configure it, which may take 5-10 minutes.
 
-3.  **Apply the Configuration:**
-    ```bash
-    terraform apply -var="project_id=[YOUR_PROJECT_ID]"
-    ```
-    Enter `yes` when prompted to confirm. The script will provision the VM and fully configure it, which may take 5-10 minutes.
+### Step 2: Run the Data Generator
 
-4.  **Get Outputs:**
-    After the apply is complete, Terraform will output the internal IP of the Kafka VM. You will need this for the Dataflow job parameters.
-
-## Running the Data Generator
-
-The startup script automatically clones the required repository and sets up the Python environment. To start producing data, you just need to SSH into the VM and run the script.
+The startup script automatically clones the required repository and sets up the Python environment.
 
 1.  **SSH into the VM:**
-    You can SSH into the VM using the `gcloud` command.
     ```bash
     gcloud compute ssh kafka-vm --zone=[YOUR_ZONE] --project=[YOUR_PROJECT_ID]
     ```
     *(The default zone is `us-central1-a`)*
 
-2.  **Navigate to the repository and start the producer:**
+2.  **Start the producer:**
+    Navigate to the repository, activate the virtual environment, and start the producer script.
     ```bash
     cd /opt/dataflow-repo
     source venv/bin/activate
@@ -52,11 +50,24 @@ The startup script automatically clones the required repository and sets up the 
         --topic PurchaseRequestEventV1 \
         --eps 1000
     ```
-This will start sending Avro messages to the `PurchaseRequestEventV1` topic.
+    Leave this process running.
+
+### Step 3: Launch the Dataflow Job
+
+Once the data producer is running, you can launch the Dataflow job from your local machine (not on the VM).
+
+1.  **Apply the Dataflow Job Configuration:**
+    This command uses the `-target` flag to create *only* the Dataflow job resource, without affecting the rest of the infrastructure. You will need to provide your Dataflow service account and the target BigQuery dataset.
+    ```bash
+    terraform apply \
+      -var="project_id=[YOUR_PROJECT_ID]" \
+      -var="bigquery_dataset=[YOUR_BIGQUERY_DATASET]" \
+      -target="google_dataflow_flex_template_job.kafka_to_bigquery"
+    ```
 
 ## Cleanup
 
-To destroy the created resources, run:
+To destroy all created resources (including the Dataflow job), run:
 ```bash
 terraform destroy -var="project_id=[YOUR_PROJECT_ID]"
 ```

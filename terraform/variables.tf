@@ -14,3 +14,8 @@ variable "zone" {
   type        = string
   default     = "us-central1-a"
 }
+
+variable "bigquery_dataset" {
+  description = "The BigQuery dataset for the Dataflow job to write to."
+  type        = string
+}
