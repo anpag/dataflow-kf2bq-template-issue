@@ -114,7 +114,49 @@ The provided Python scripts will generate and send Avro-formatted data to your K
         --schema-registry http://[VM_INTERNAL_IP]:8081
     ```
 
-## 3. Running the Dataflow Job
+## 3. Dataflow Job Baseline Configuration
+
+The issue was reproduced using the official `Kafka_to_BigQuery_Flex` template. The core problem persists across various configurations, confirming it's a fundamental issue with the template's connection management rather than a specific setting.
+
+### Key Findings:
+*   **Runners:** The bug is present in both Dataflow **Runner V1** and **Runner V2**.
+*   **Sharding:** The excessive connections occur regardless of whether `useAutoSharding` is set to `true` or `false`.
+*   **Message Format:** The job is configured to process `AVRO_CONFLUENT_WIRE_FORMAT` messages.
+*   **Schema Registry:** It utilizes a Confluent Schema Registry. This requires the `writeMode` to be set to `DYNAMIC_TABLE_NAMES`, as the template does not support Schema Registry lookups when writing to a single, predefined BigQuery table.
+
+### Job Parameters and Metadata
+
+Below is a summary of the key parameters from a job that reproduced the issue. Sensitive information has been replaced with placeholders.
+
+*   **Template Version:** `goog-dataflow-provided-template-version=2025-09-23-00_rc00`
+*   **SDK Version:** `Apache Beam SDK for Java 2.67.0`
+*   **Job Type:** Streaming
+*   **Region:** `us-central1`
+*   **Worker Configuration:**
+    *   `numWorkers`: 1
+    *   `maxNumWorkers`: 1
+    *   `autoscalingAlgorithm`: `NONE`
+*   **Kafka Source:**
+    *   `readBootstrapServerAndTopic`: `[VM_INTERNAL_IP]:9092;PurchaseRequestEventV1`
+    *   `messageFormat`: `AVRO_CONFLUENT_WIRE_FORMAT`
+    *   `schemaFormat`: `SCHEMA_REGISTRY`
+    *   `schemaRegistryConnectionUrl`: `http://[VM_INTERNAL_IP]:8081`
+*   **BigQuery Sink:**
+    *   `outputProject`: `[YOUR_PROJECT_ID]`
+    *   `outputDataset`: `[YOUR_BIGQUERY_DATASET]`
+    *   `writeMode`: `DYNAMIC_TABLE_NAMES`
+    *   `bqTableNamePrefix`: `kafka-`
+    *   `useStorageWriteApi`: `true`
+    *   `useAutoSharding`: `false` (also tested with `true`)
+    *   `numStorageWriteApiStreams`: `1`
+*   **Network & Service Account:**
+    *   `network`: `[YOUR_VPC_NETWORK]`
+    *   `subnetwork`: `[YOUR_SUBNETWORK]`
+    *   `serviceAccount`: `[YOUR_SERVICE_ACCOUNT_EMAIL]`
+
+This configuration, designed to be as minimal as possible, still results in the exhaustion of the concurrent connection quota.
+
+### Example Job Submission Command
 
 This command will start the Dataflow job with the configuration that triggers the bug.
 
@@ -130,10 +172,6 @@ gcloud dataflow flex-template run dataflow-bug-repro \
   --parameters \
     "readBootstrapServerAndTopic=[VM_INTERNAL_IP]:9092;PurchaseRequestEventV1,messageFormat=AVRO_CONFLUENT_WIRE_FORMAT,schemaRegistryConnectionUrl=http://[VM_INTERNAL_IP]:8081,outputProject=[YOUR_PROJECT_ID],outputDataset=[YOUR_BIGQUERY_DATASET],writeMode=DYNAMIC_TABLE_NAMES,useAutoSharding=false,numStorageWriteApiStreams=1"
 ```
-
-**Key Parameters:**
-*   `num-workers=1` and `max-num-workers=1`: Restricts the job to a single worker.
-*   `useAutoSharding=false` and `numStorageWriteApiStreams=1`: Explicitly tells the template to use only one write stream.
 
 ## 4. Observing the Issue
 
