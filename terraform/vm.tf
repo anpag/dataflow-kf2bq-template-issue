@@ -18,9 +18,9 @@ resource "google_compute_instance" "kafka_vm" {
     #!/bin/bash
     set -e
 
-    # 1. Install Prerequisites
+    # 1. Install Prerequisites (including Java FIRST)
     apt-get update
-    apt-get install -y software-properties-common wget gnupg git python3-pip python3-venv curl
+    apt-get install -y default-jdk software-properties-common wget gnupg git python3-pip python3-venv curl jq
 
     # 2. Add Confluent APT Repository
     wget -qO - https://packages.confluent.io/deb/7.2/archive.key | apt-key add -
@@ -50,10 +50,8 @@ resource "google_compute_instance" "kafka_vm" {
     # 7. Register the Avro Schema
     # Wait a few seconds for Schema Registry to be fully up
     sleep 15
-    curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
-      --data "{ \"schema\": $(jq -c . < /opt/dataflow-repo/PurchaseRequestEventV1.avsc | sed 's/"/\\"/g') }" \
-      http://localhost:8081/subjects/PurchaseRequestEventV1-value/versions
-
+    jq -c '{ "schema": tostring }' /opt/dataflow-repo/PurchaseRequestEventV1.avsc | curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" --data @- http://localhost:8081/subjects/PurchaseRequestEventV1-value/versions
+    
     EOF
   service_account {
     scopes = ["cloud-platform"]
