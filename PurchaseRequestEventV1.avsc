@@ -1,0 +1,326 @@
+{
+  "type": "record",
+  "name": "PurchaseRequestEventV1",
+  "namespace": "Mypinpad.Common.Standardization.Events.Transactions",
+  "doc": "A common event object that can be used for all events",
+  "fields": [
+    {
+      "name": "Composite",
+      "type": "string",
+      "doc": "The composite name of the event"
+    },
+    {
+      "name": "Details",
+      "type": {
+        "type": "record",
+        "name": "Detail",
+        "namespace": "Mypinpad.Common.Standardization.Events",
+        "doc": "A common event detail object that can be used for all events",
+        "fields": [
+          {
+            "name": "EventAt",
+            "type": "string",
+            "doc": "The ISO8601 UTC timestamp with offset of when the event has happened in the component"
+          },
+          {
+            "name": "TraceId",
+            "type": "string",
+            "doc": "32 character hex string that identifies the distributed trace"
+          },
+          {
+            "name": "SpanId",
+            "type": "string",
+            "doc": "16 character hex string that identifies a span within a trace"
+          },
+          {
+            "name": "ParentSpanId",
+            "type": "string",
+            "doc": "16 character hex string that identifies the parent span"
+          },
+          {
+            "name": "Component",
+            "type": {
+              "type": "enum",
+              "name": "Component",
+              "namespace": "Mypinpad.Common.Standardization.Enums",
+              "doc": "Identifies the component",
+              "symbols": [
+                "PurchaseService",
+                "RefundService",
+                "CryptoService",
+                "KeyManagerService",
+                "AcquirerService"
+              ]
+            },
+            "doc": "The short name of the component that generated the operation"
+          },
+          {
+            "name": "Method",
+            "type": "string",
+            "doc": "The name of the method or function being executed"
+          },
+          {
+            "name": "Info",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "A short string that may help describe this event"
+          },
+          {
+            "name": "Activity",
+            "type": {
+              "type": "enum",
+              "name": "Activity",
+              "namespace": "Mypinpad.Common.Standardization.Enums",
+              "doc": "The activity or action within the flow of the event",
+              "symbols": [
+                "Started",
+                "Stopped",
+                "Created",
+                "Sent",
+                "Received",
+                "Warning",
+                "Exception"
+              ]
+            },
+            "doc": "The activity or action within the flow of the event"
+          },
+          {
+            "name": "SentAt",
+            "type": "string",
+            "doc": "The ISO8601 UTC timestamp with an offset of when the event got published to the message queue"
+          },
+          {
+            "name": "OrganizationId",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "The unique identifier for an organization within the system"
+          },
+          {
+            "name": "IdempotencyKey",
+            "type": "string",
+            "doc": "A unique key to ensure idempotency of operations"
+          },
+          {
+            "name": "DataClassification",
+            "type": {
+              "type": "enum",
+              "name": "DataClassification",
+              "namespace": "Mypinpad.Common.Standardization.Enums",
+              "doc": "Data classification per the data classification logic",
+              "symbols": [
+                "Green",
+                "Amber",
+                "Red",
+                "Blue"
+              ]
+            },
+            "doc": "Data classification per data classification logic"
+          },
+          {
+            "name": "Category",
+            "type": {
+              "type": "enum",
+              "name": "Category",
+              "namespace": "Mypinpad.Common.Standardization.Enums",
+              "doc": "Identifies the category of the event",
+              "symbols": [
+                "Critical",
+                "Warning",
+                "Performance",
+                "Error",
+                "Notice",
+                "Informational",
+                "Debug"
+              ]
+            },
+            "doc": "Identifies the category of the operation"
+          }
+        ]
+      },
+      "doc": "The details of the event"
+    },
+    {
+      "name": "State",
+      "type": {
+        "type": "record",
+        "name": "PurchaseRequestEventV1State",
+        "namespace": "Mypinpad.Common.Standardization.Events.Transactions.States",
+        "doc": "A common transaction request state object that can be used for all transactions",
+        "fields": [
+          {
+            "name": "MerchantId",
+            "type": "string",
+            "doc": "Unique identifier for the merchant"
+          },
+          {
+            "name": "InstanceId",
+            "type": "string",
+            "doc": "Unique identifier for the instance"
+          },
+          {
+            "name": "TransactionId",
+            "type": "string",
+            "doc": "Unique identifier for each transaction within the system"
+          },
+          {
+            "name": "CorrelationId",
+            "type": "string",
+            "doc": "Correlation identifier for related operations"
+          },
+          {
+            "name": "RequestTimestampUtc",
+            "type": "string",
+            "doc": "UTC timestamp in ISO 8601 for the time the transaction request was received"
+          },
+          {
+            "name": "CustomerReference",
+            "type": "string",
+            "doc": "Customer reference identifier"
+          },
+          {
+            "name": "RequestMeta",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "A metadata field used during transactions to store additional information"
+          },
+          {
+            "name": "PanStart",
+            "type": "string",
+            "doc": "First six digits of the card PAN"
+          },
+          {
+            "name": "PanStartEight",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "First eight digits of the card PAN"
+          },
+          {
+            "name": "PanEnd",
+            "type": "string",
+            "doc": "Last four digits of the card PAN"
+          },
+          {
+            "name": "PanSequenceNumber",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "Identifies and differentiates cards with the same card number"
+          },
+          {
+            "name": "CardApplicationId",
+            "type": "string",
+            "doc": "Identifies the application on the card as described in ISO/IEC 7816-5"
+          },
+          {
+            "name": "EntryMode",
+            "type": "string",
+            "doc": "Defines how the card was presented to the device"
+          },
+          {
+            "name": "Scheme",
+            "type": "string",
+            "doc": "The payment scheme of the card used for the transaction"
+          },
+          {
+            "name": "SchemeId",
+            "type": "string",
+            "doc": "The payment scheme identifier of the card used for the transaction"
+          },
+          {
+            "name": "CardApplicationLabel",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "The standard label for the card application schema"
+          },
+          {
+            "name": "CardApplicationPreferredName",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "An optional override for the application label specified by the card issuer"
+          },
+          {
+            "name": "CardholderVerificationMethod",
+            "type": "string",
+            "doc": "The Cardholder Verification Method (CVM) used during the transaction"
+          },
+          {
+            "name": "CardholderVerificationMethodResults",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "Results of the Cardholder Verification Method"
+          },
+          {
+            "name": "Amount",
+            "type": "long",
+            "doc": "Transaction amount in minor units"
+          },
+          {
+            "name": "AmountFormatted",
+            "type": "string",
+            "doc": "Transaction amount formatted with decimal point"
+          },
+          {
+            "name": "Currency",
+            "type": "string",
+            "doc": "Currency code in alpha format"
+          },
+          {
+            "name": "CurrencyCode",
+            "type": "string",
+            "doc": "Currency code in numeric format"
+          },
+          {
+            "name": "RequestProductFeatures",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "Request Product feature extensions represented in a json format"
+          },
+          {
+            "name": "ApplicationCryptogram",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "Cryptogram generated by the card application"
+          },
+          {
+            "name": "Platform",
+            "type": "string",
+            "doc": "Platform identifier for the transaction"
+          },
+          {
+            "name": "TransactionType",
+            "type": "string",
+            "doc": "Type of transaction being processed"
+          }
+        ]
+      },
+      "doc": "The state of the event"
+    },
+    {
+      "name": "hotkeyId",
+      "type": [
+        "null",
+        "int"
+      ],
+      "default": null
+    }
+  ]
+}
