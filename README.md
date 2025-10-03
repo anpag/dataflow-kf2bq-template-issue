@@ -28,6 +28,37 @@ For detailed instructions on how to deploy the infrastructure, please refer to t
 
 The provided Python scripts will generate and send Avro-formatted data to your Kafka topic.
 
+### Dynamic Data Generation Engine
+
+A key component of this repository is the dynamic data generation engine, found in `data_generator.py`. This script is designed to automatically create realistic, randomized data that conforms to a given Avro schema.
+
+#### How it Works
+
+The script leverages a Large Language Model (Google's Gemini) to analyze an Avro schema (`.avsc` file) and generate a Python function that can produce data matching that schema's structure and data types. It intelligently maps schema types to appropriate fake data generators (e.g., generating UUIDs for `uuid` logical types, ISO 8601 timestamps for `timestamp-millis`, and realistic random data for strings, integers, etc.).
+
+This allows for the rapid creation of high-quality test data for any Kafka topic that uses Avro and the Confluent Schema Registry.
+
+#### Pre-Generated Function
+
+This repository includes a pre-generated function, `generated_functions/PurchaseRequestEventV1_datagen.py`, which was created from the `PurchaseRequestEventV1.avsc` schema. The `dynamic_producer.py` script automatically uses this function to generate the data sent to the Kafka topic.
+
+#### Generating Your Own Data Functions
+
+You can use the `data_generator.py` script to generate a data creation function for any Avro schema.
+
+1.  **Set your Gemini API Key:**
+    The script requires a Gemini API key to be set as an environment variable.
+    ```bash
+    export GEMINI_API_KEY="[YOUR_GEMINI_API_KEY]"
+    ```
+
+2.  **Run the script:**
+    Execute the script and provide the path to your Avro schema file.
+    ```bash
+    python data_generator.py --schema-file /path/to/your/schema.avsc
+    ```
+    The script will generate a new Python file in the `generated_functions/` directory containing the data generation logic for your.
+
 ### Setup
 
 1.  **Clone this repository and install dependencies:**
@@ -38,7 +69,7 @@ The provided Python scripts will generate and send Avro-formatted data to your K
     ```
 
 2.  **Update Kafka Broker IP:**
-    In `dynamic_producer.py`, `eps_monitor.py`, and `data_generator.py`, replace the placeholder `[VM_INTERNAL_IP]` with the internal IP address of your `kafka-vm`.
+    In `dynamic_producer.py`, `eps_monitor.py`, and `data_generator.py`, replace the placeholder `[KAFKA_VM_INTERNAL_IP]` with the internal IP address of your `kafka-vm` from the Terraform output.
 
 ### Scripts
 
