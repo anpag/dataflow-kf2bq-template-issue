@@ -49,21 +49,22 @@ The provided Python scripts will generate and send Avro-formatted data to your K
 ### Running the Producer
 
 1.  **Start the producer:**
+    The Terraform output will provide the internal IP of the `kafka-vm`.
     ```bash
     python dynamic_producer.py \
-        --broker [VM_INTERNAL_IP]:9092 \
-        --schema-registry http://[VM_INTERNAL_IP]:8081 \
+        --broker [KAFKA_VM_INTERNAL_IP]:9092 \
+        --schema-registry http://[KAFKA_VM_INTERNAL_IP]:8081 \
         --topic PurchaseRequestEventV1 \
-        --eps 1000
+        --eps 1
     ```
 
 2.  **(Optional) Monitor EPS in a separate terminal:**
     ```bash
     python eps_monitor.py \
-        --broker [VM_INTERNAL_IP]:9092 \
+        --broker [KAFKA_VM_INTERNAL_IP]:9092 \
         --topic PurchaseRequestEventV1 \
         --avro \
-        --schema-registry http://[VM_INTERNAL_IP]:8081
+        --schema-registry http://[KAFKA_VM_INTERNAL_IP]:8081
     ```
 
 ## 3. Dataflow Job Baseline Configuration
@@ -89,10 +90,10 @@ Below is a summary of the key parameters from a job that reproduced the issue. S
     *   `maxNumWorkers`: 1
     *   `autoscalingAlgorithm`: `NONE`
 *   **Kafka Source:**
-    *   `readBootstrapServerAndTopic`: `[VM_INTERNAL_IP]:9092;PurchaseRequestEventV1`
+    *   `readBootstrapServerAndTopic`: `[KAFKA_VM_INTERNAL_IP]:9092;PurchaseRequestEventV1`
     *   `messageFormat`: `AVRO_CONFLUENT_WIRE_FORMAT`
     *   `schemaFormat`: `SCHEMA_REGISTRY`
-    *   `schemaRegistryConnectionUrl`: `http://[VM_INTERNAL_IP]:8081`
+    *   `schemaRegistryConnectionUrl`: `http://[KAFKA_VM_INTERNAL_IP]:8081`
 *   **BigQuery Sink:**
     *   `outputProject`: `[YOUR_PROJECT_ID]`
     *   `outputDataset`: `[YOUR_BIGQUERY_DATASET]`
@@ -102,15 +103,17 @@ Below is a summary of the key parameters from a job that reproduced the issue. S
     *   `useAutoSharding`: `false` (also tested with `true`)
     *   `numStorageWriteApiStreams`: `1`
 *   **Network & Service Account:**
-    *   `network`: `[YOUR_VPC_NETWORK]`
-    *   `subnetwork`: `[YOUR_SUBNETWORK]`
-    *   `serviceAccount`: `[YOUR_SERVICE_ACCOUNT_EMAIL]`
+    *   `network`: `projects/[YOUR_PROJECT_ID]/global/networks/dataflow-test-vpc`
+    *   `subnetwork`: `projects/[YOUR_PROJECT_ID]/regions/us-central1/subnetworks/dataflow-test-subnet`
+    *   `serviceAccount`: `dataflow-runner@[YOUR_PROJECT_ID].iam.gserviceaccount.com`
 
 This configuration, designed to be as minimal as possible, still results in the exhaustion of the concurrent connection quota.
 
 ### Example Job Submission Command
 
-This command will start the Dataflow job with the configuration that triggers the bug.
+This command will start the Dataflow job with the configuration that triggers the bug. The values for the subnetwork and service account email can be found in the Terraform output.
+
+**Note:** This issue is reproducible with both Dataflow Runner V1 and V2, and with `useAutoSharding` set to either `true` or `false`. The command below uses the default Runner V1 and disables auto-sharding to create the most minimal configuration.
 
 ```bash
 gcloud dataflow flex-template run dataflow-bug-repro \
@@ -119,10 +122,9 @@ gcloud dataflow flex-template run dataflow-bug-repro \
   --project=[YOUR_PROJECT_ID] \
   --num-workers 1 \
   --max-num-workers 1 \
-  --subnetwork [YOUR_SUBNETWORK] \
-  --service-account-email [YOUR_SERVICE_ACCOUNT_EMAIL] \
-  --parameters \
-    "readBootstrapServerAndTopic=[VM_INTERNAL_IP]:9092;PurchaseRequestEventV1,messageFormat=AVRO_CONFLUENT_WIRE_FORMAT,schemaRegistryConnectionUrl=http://[VM_INTERNAL_IP]:8081,outputProject=[YOUR_PROJECT_ID],outputDataset=[YOUR_BIGQUERY_DATASET],writeMode=DYNAMIC_TABLE_NAMES,useAutoSharding=false,numStorageWriteApiStreams=1"
+  --subnetwork "https://www.googleapis.com/compute/v1/projects/[YOUR_PROJECT_ID]/regions/us-central1/subnetworks/dataflow-test-subnet" \
+  --service-account-email "dataflow-runner@[YOUR_PROJECT_ID].iam.gserviceaccount.com" \
+  --parameters '^~^useAutoSharding=false~readBootstrapServerAndTopic=10.0.0.4:9092;PurchaseRequestEventV1~persistKafkaKey=false~writeMode=DYNAMIC_TABLE_NAMES~storageWriteApiTriggeringFrequencySec=60~enableCommitOffsets=false~kafkaReadOffset=latest~kafkaReadAuthenticationMode=NONE~messageFormat=AVRO_CONFLUENT_WIRE_FORMAT~useBigQueryDLQ=false~stagingLocation=gs://dataflow-staging-us-central1-2648/staging~autoscalingAlgorithm=NONE~maxNumWorkers=1~serviceAccount=2613-compute@developer.gserviceaccount.com~outputProject=myproject~outputDataset=test~bqTableNamePrefix=kafka-~schemaFormat=SCHEMA_REGISTRY~schemaRegistryConnectionUrl=http://10.0.0.4:8081~schemaRegistryAuthenticationMode=NONE~numStorageWriteApiStreams=1~usePublicIps=false~experiments=use_runner_v2,enable_streaming_engine'
 ```
 
 ## 4. Observing the Issue
